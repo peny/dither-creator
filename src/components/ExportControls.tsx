@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
-import { Download, Scissors, Palette } from 'lucide-react';
-import { ImageSegment, DitherPattern } from '../types';
+import React, { useCallback, useState } from 'react';
+import { Download, Scissors, Palette, Eye, X } from 'lucide-react';
+import { ImageSegment } from '../types';
 import { saveAs } from 'file-saver';
 
 interface ExportControlsProps {
@@ -42,6 +42,9 @@ const DITHER_PATTERNS: Record<string, string> = {
 };
 
 const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensions }) => {
+  const [previewSVG, setPreviewSVG] = useState<string>('');
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [previewMode, setPreviewMode] = useState<'all' | 'separate' | 'patterns'>('all');
   const generateSVG = useCallback(async (segments: ImageSegment[], includeAll: boolean = true) => {
     const svgWidth = imageDimensions.width;
     const svgHeight = imageDimensions.height;
@@ -231,6 +234,34 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
     }
   }, [segments, generateSVG]);
 
+  const previewSVGContent = useCallback(async (mode: 'all' | 'separate' | 'patterns') => {
+    try {
+      let svg: string;
+      
+      if (mode === 'separate') {
+        // For separate preview, show all segments individually
+        svg = await generateSVG(segments, true);
+      } else if (mode === 'patterns') {
+        // For patterns preview, only show segments with patterns
+        svg = await generateSVG(segments, false);
+      } else {
+        // For all preview, show everything
+        svg = await generateSVG(segments, true);
+      }
+      
+      setPreviewSVG(svg);
+      setPreviewMode(mode);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Error generating preview:', error);
+    }
+  }, [segments, generateSVG]);
+
+  const closePreview = () => {
+    setShowPreview(false);
+    setPreviewSVG('');
+  };
+
   return (
     <div>
       <h3 style={{ margin: '2rem 0 1rem 0', color: '#646cff' }}>
@@ -287,6 +318,40 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
           Export with Patterns
         </button>
       </div>
+
+      <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => previewSVGContent('all')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: '#8b5cf6',
+            color: 'white',
+            padding: '0.75rem 1rem',
+            fontSize: '0.9rem',
+          }}
+        >
+          <Eye size={16} />
+          Preview All
+        </button>
+        
+        <button
+          onClick={() => previewSVGContent('patterns')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: '#ec4899',
+            color: 'white',
+            padding: '0.75rem 1rem',
+            fontSize: '0.9rem',
+          }}
+        >
+          <Eye size={16} />
+          Preview Patterns
+        </button>
+      </div>
       
       <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.7 }}>
         <p>
@@ -299,6 +364,101 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
           <strong>Export with Patterns:</strong> Only segments with dither patterns applied
         </p>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '2rem',
+          }}
+          onClick={closePreview}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '2rem',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closePreview}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#666',
+              }}
+            >
+              <X size={24} />
+            </button>
+            
+            <h3 style={{ margin: '0 0 1rem 0', color: '#646cff' }}>
+              SVG Preview {previewMode === 'all' ? '(All Segments)' : previewMode === 'patterns' ? '(With Patterns)' : '(Separate)'}
+            </h3>
+            
+            <div
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '1rem',
+                background: '#f9f9f9',
+                maxWidth: '100%',
+                overflow: 'auto',
+              }}
+            >
+              <div
+                dangerouslySetInnerHTML={{ __html: previewSVG }}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                }}
+              />
+            </div>
+            
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  const blob = new Blob([previewSVG], { type: 'image/svg+xml' });
+                  saveAs(blob, `preview-${previewMode}.svg`);
+                }}
+                style={{
+                  background: '#646cff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <Download size={16} />
+                Download Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
