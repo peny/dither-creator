@@ -74,25 +74,15 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
         const hasData = Array.from(imageData.data).some(pixel => pixel !== 0);
         console.log('🖼️ Image drawn successfully:', hasData);
         
-        // Don't call drawExistingSegments here as it will redraw the image
-        // Just draw existing segments directly
+        // Draw existing segments directly (hover highlighting will be handled by redrawSegmentsOnly)
         segments.forEach(segment => {
           if (segment.mask) {
             const maskImg = new Image();
             maskImg.onload = () => {
               ctx.save();
-              
-              // Highlight hovered segment with different alpha and color
-              if (hoveredSegment === segment.id) {
-                ctx.globalAlpha = 0.6;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = '#3b82f6'; // Blue highlight
-              } else {
-                ctx.globalAlpha = 0.3;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = getSegmentColor(segment.id);
-              }
-              
+              ctx.globalAlpha = 0.3;
+              ctx.globalCompositeOperation = 'source-over';
+              ctx.fillStyle = getSegmentColor(segment.id);
               ctx.drawImage(maskImg, 0, 0, displayWidth, displayHeight);
               ctx.restore();
             };
@@ -174,52 +164,71 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
       drawCurrentPolygon();
     }, [anchorPoints, drawCurrentPolygon]);
 
-    // Redraw segments when hover state changes
+    // Store the base image to avoid reloading on every hover
+    const baseImageRef = useRef<HTMLImageElement | null>(null);
+    const [baseImageLoaded, setBaseImageLoaded] = useState(false);
+
+    // Load and cache the base image
     useEffect(() => {
       if (!imageData) return;
       
+      const img = new Image();
+      img.onload = () => {
+        baseImageRef.current = img;
+        setBaseImageLoaded(true);
+      };
+      img.src = imageData;
+    }, [imageData]);
+
+    // Efficient function to redraw only segments without reloading image
+    const redrawSegmentsOnly = useCallback(() => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || !baseImageRef.current || !baseImageLoaded) return;
 
       const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
       const displayWidth = canvas.width;
       const displayHeight = canvas.height;
 
-      // Clear canvas
+      // Clear canvas and redraw base image from cache
       ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.drawImage(baseImageRef.current, 0, 0, displayWidth, displayHeight);
+      
+      // Draw existing segments with hover highlighting
+      segments.forEach(segment => {
+        if (segment.mask) {
+          const maskImg = new Image();
+          maskImg.onload = () => {
+            ctx.save();
+            
+            // Highlight hovered segment with different alpha and color
+            if (hoveredSegment === segment.id) {
+              ctx.globalAlpha = 0.6;
+              ctx.globalCompositeOperation = 'source-over';
+              ctx.fillStyle = '#3b82f6'; // Blue highlight
+            } else {
+              ctx.globalAlpha = 0.3;
+              ctx.globalCompositeOperation = 'source-over';
+              ctx.fillStyle = getSegmentColor(segment.id);
+            }
+            
+            ctx.drawImage(maskImg, 0, 0, displayWidth, displayHeight);
+            ctx.restore();
+          };
+          maskImg.src = segment.mask;
+        }
+      });
+    }, [segments, hoveredSegment, baseImageLoaded]);
 
-      // Draw the original image
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
-        
-        // Draw existing segments with hover highlighting
-        segments.forEach(segment => {
-          if (segment.mask) {
-            const maskImg = new Image();
-            maskImg.onload = () => {
-              ctx.save();
-              
-              // Highlight hovered segment with different alpha and color
-              if (hoveredSegment === segment.id) {
-                ctx.globalAlpha = 0.6;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = '#3b82f6'; // Blue highlight
-              } else {
-                ctx.globalAlpha = 0.3;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = getSegmentColor(segment.id);
-              }
-              
-              ctx.drawImage(maskImg, 0, 0, displayWidth, displayHeight);
-              ctx.restore();
-            };
-            maskImg.src = segment.mask;
-          }
-        });
-      };
-      img.src = imageData;
-    }, [hoveredSegment, segments, imageData]);
+    // Redraw segments when hover state changes (debounced to prevent flickering)
+    useEffect(() => {
+      if (!baseImageLoaded) return;
+      
+      const timeoutId = setTimeout(() => {
+        redrawSegmentsOnly();
+      }, 16); // ~60fps debouncing
+
+      return () => clearTimeout(timeoutId);
+    }, [hoveredSegment, redrawSegmentsOnly, baseImageLoaded]);
 
 
     const handleCanvasClick = useCallback((e: React.MouseEvent) => {
