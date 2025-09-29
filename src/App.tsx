@@ -24,6 +24,7 @@ const App: React.FC = () => {
     imageData: null,
     imageDimensions: null,
   });
+  const [hoveredSegment, setHoveredSegment] = useState<SegmentType | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -62,6 +63,10 @@ const App: React.FC = () => {
     }));
   }, []);
 
+  const handleSegmentHover = useCallback((segmentType: SegmentType | null) => {
+    setHoveredSegment(segmentType);
+  }, []);
+
   const currentInstructions = segmentationState.currentSegment
     ? `Click to place anchor points around the ${SEGMENT_TYPES.find(s => s.id === segmentationState.currentSegment)?.name.toLowerCase()}. Click on the first point or double-click to complete.`
     : 'Select a body part to start segmenting';
@@ -89,6 +94,7 @@ const App: React.FC = () => {
             segmentTypes={SEGMENT_TYPES}
             currentSegment={segmentationState.currentSegment}
             onSegmentSelect={handleSegmentSelect}
+            onSegmentHover={handleSegmentHover}
             segments={segmentationState.segments}
           />
 
@@ -97,6 +103,7 @@ const App: React.FC = () => {
             imageData={segmentationState.imageData}
             imageDimensions={segmentationState.imageDimensions!}
             currentSegment={segmentationState.currentSegment}
+            hoveredSegment={hoveredSegment}
             segments={segmentationState.segments}
             onSegmentComplete={handleSegmentComplete}
           />
