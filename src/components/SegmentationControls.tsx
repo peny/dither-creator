@@ -5,6 +5,7 @@ interface SegmentationControlsProps {
   segmentTypes: { id: SegmentType; name: string; icon: string }[];
   currentSegment: string | null;
   onSegmentSelect: (segmentType: SegmentType) => void;
+  onSegmentHover?: (segmentType: SegmentType | null) => void;
   segments: ImageSegment[];
 }
 
@@ -12,6 +13,7 @@ const SegmentationControls: React.FC<SegmentationControlsProps> = ({
   segmentTypes,
   currentSegment,
   onSegmentSelect,
+  onSegmentHover,
   segments,
 }) => {
   const getSegmentStatus = (segmentType: SegmentType) => {
@@ -30,6 +32,8 @@ const SegmentationControls: React.FC<SegmentationControlsProps> = ({
             key={id}
             className={`segment-button ${isActive ? 'active' : ''} ${status === 'completed' ? 'completed' : ''}`}
             onClick={() => onSegmentSelect(id)}
+            onMouseEnter={() => onSegmentHover?.(id)}
+            onMouseLeave={() => onSegmentHover?.(null)}
             style={{
               display: 'flex',
               flexDirection: 'column',

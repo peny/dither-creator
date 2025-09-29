@@ -1,16 +1,17 @@
 import React, { forwardRef, useRef, useEffect, useCallback, useState } from 'react';
-import { ImageSegment, SegmentType, ClickPoint } from '../types';
+import { ImageSegment, ClickPoint } from '../types';
 
 interface SegmentationCanvasProps {
   imageData: string;
   imageDimensions: { width: number; height: number };
   currentSegment: string | null;
+  hoveredSegment: string | null;
   segments: ImageSegment[];
   onSegmentComplete: (segment: ImageSegment) => void;
 }
 
 const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps>(
-  ({ imageData, imageDimensions, currentSegment, segments, onSegmentComplete }, ref) => {
+  ({ imageData, imageDimensions, currentSegment, hoveredSegment, segments, onSegmentComplete }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const [anchorPoints, setAnchorPoints] = useState<ClickPoint[]>([]);
@@ -38,7 +39,6 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
       if (!canvas || !overlayCanvas || !imageData) return;
 
           const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-          const overlayCtx = overlayCanvas.getContext('2d', { willReadFrequently: true })!;
       
       // Set canvas size to fit in container while maintaining aspect ratio
       const maxWidth = 800;
@@ -81,9 +81,18 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
             const maskImg = new Image();
             maskImg.onload = () => {
               ctx.save();
-              ctx.globalAlpha = 0.3;
-              ctx.globalCompositeOperation = 'source-over';
-              ctx.fillStyle = getSegmentColor(segment.id);
+              
+              // Highlight hovered segment with different alpha and color
+              if (hoveredSegment === segment.id) {
+                ctx.globalAlpha = 0.6;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = '#3b82f6'; // Blue highlight
+              } else {
+                ctx.globalAlpha = 0.3;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = getSegmentColor(segment.id);
+              }
+              
               ctx.drawImage(maskImg, 0, 0, displayWidth, displayHeight);
               ctx.restore();
             };
@@ -112,38 +121,6 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
 
     // This will be moved after drawCurrentPolygon is defined
 
-    const drawExistingSegments = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw the original image first
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Draw existing segments on top
-        segments.forEach(segment => {
-          if (segment.mask) {
-            const maskImg = new Image();
-            maskImg.onload = () => {
-              ctx.save();
-              ctx.globalAlpha = 0.3;
-              ctx.globalCompositeOperation = 'source-over';
-              ctx.fillStyle = getSegmentColor(segment.id);
-              ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-              ctx.restore();
-            };
-            maskImg.src = segment.mask;
-          }
-        });
-      };
-      img.src = imageData;
-    }, [imageData, segments]);
 
     const drawCurrentPolygon = useCallback(() => {
       const overlayCanvas = overlayCanvasRef.current;
@@ -197,20 +174,53 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
       drawCurrentPolygon();
     }, [anchorPoints, drawCurrentPolygon]);
 
-    const getPolygonBounds = (points: ClickPoint[]) => {
-      if (points.length === 0) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+    // Redraw segments when hover state changes
+    useEffect(() => {
+      if (!imageData) return;
       
-      let minX = points[0].x, minY = points[0].y, maxX = points[0].x, maxY = points[0].y;
-      
-      points.forEach(point => {
-        minX = Math.min(minX, point.x);
-        minY = Math.min(minY, point.y);
-        maxX = Math.max(maxX, point.x);
-        maxY = Math.max(maxY, point.y);
-      });
-      
-      return { minX, minY, maxX, maxY };
-    };
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      const displayWidth = canvas.width;
+      const displayHeight = canvas.height;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+      // Draw the original image
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+        
+        // Draw existing segments with hover highlighting
+        segments.forEach(segment => {
+          if (segment.mask) {
+            const maskImg = new Image();
+            maskImg.onload = () => {
+              ctx.save();
+              
+              // Highlight hovered segment with different alpha and color
+              if (hoveredSegment === segment.id) {
+                ctx.globalAlpha = 0.6;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = '#3b82f6'; // Blue highlight
+              } else {
+                ctx.globalAlpha = 0.3;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = getSegmentColor(segment.id);
+              }
+              
+              ctx.drawImage(maskImg, 0, 0, displayWidth, displayHeight);
+              ctx.restore();
+            };
+            maskImg.src = segment.mask;
+          }
+        });
+      };
+      img.src = imageData;
+    }, [hoveredSegment, segments, imageData]);
+
 
     const handleCanvasClick = useCallback((e: React.MouseEvent) => {
       if (!currentSegment || isComplete) return;
@@ -238,7 +248,7 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
       setAnchorPoints(prev => [...prev, { x, y, type: 'include' }]);
     }, [currentSegment, anchorPoints, isComplete]);
 
-    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    const handleDoubleClick = useCallback((_e: React.MouseEvent) => {
       if (!currentSegment || anchorPoints.length < 3) return;
       
       // Double click to complete polygon
