@@ -7,6 +7,7 @@ import SegmentationControls from './components/SegmentationControls';
 import DitherPatterns from './components/DitherPatterns';
 import ExportControls from './components/ExportControls';
 import SVGUpload from './components/SVGUpload';
+import SVGPatternEditor from './components/SVGPatternEditor';
 
 const SEGMENT_TYPES: { id: SegmentType; name: string; icon: string }[] = [
   { id: 'hair', name: 'Hair', icon: '💇' },
@@ -179,25 +180,15 @@ const App: React.FC = () => {
           />
 
           {selectedSVG && (
-            <div style={{ marginTop: '2rem' }}>
-              <h3 style={{ margin: '2rem 0 1rem 0', color: '#646cff' }}>
-                <Palette size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                Apply Dither Patterns
-              </h3>
-              <p style={{ margin: '0 0 1.5rem 0', opacity: 0.8 }}>
-                Apply new dither patterns to your uploaded SVG
-              </p>
-              
-              {/* TODO: Add SVG pattern application interface */}
-              <div style={{ padding: '2rem', background: '#f9f9f9', borderRadius: '8px', textAlign: 'center' }}>
-                <p style={{ margin: '0', color: '#666' }}>
-                  SVG pattern application interface coming soon...
-                </p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#888' }}>
-                  This will allow you to apply the new dither patterns to uploaded SVG files.
-                </p>
-              </div>
-            </div>
+            <SVGPatternEditor
+              uploadedSVG={selectedSVG}
+              onSVGUpdate={(updatedSVG) => {
+                setUploadedSVGs(prev => 
+                  prev.map(svg => svg.id === updatedSVG.id ? updatedSVG : svg)
+                );
+                setSelectedSVG(updatedSVG);
+              }}
+            />
           )}
         </div>
       ) : (
