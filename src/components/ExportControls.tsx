@@ -9,37 +9,43 @@ interface ExportControlsProps {
 }
 
 // Generate SVG pattern definition for different pattern types
-const generatePatternDef = (patternId: string, offset: { x: number; y: number } = { x: 0, y: 0 }): string => {
+const generatePatternDef = (patternId: string, offset: { x: number; y: number } = { x: 0, y: 0 }, imageDimensions: { width: number; height: number }): string => {
   const offsetX = offset.x;
   const offsetY = offset.y;
+
+  // Calculate pattern size to fill the entire image without repeating
+  const patternWidth = imageDimensions.width;
+  const patternHeight = imageDimensions.height;
 
   switch (patternId) {
     case 'dithered_marble_1':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="64" height="64" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_1.png" width="64" height="64"/>
+          <image href="/assets/dithered_marble_1.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_marble_2':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="64" height="64" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_2.png" width="64" height="64"/>
+          <image href="/assets/dithered_marble_2.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_nest':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="64" height="64" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_nest.png" width="64" height="64"/>
+          <image href="/assets/dithered_nest.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dots':
+      // Scale dots pattern based on image size
+      const dotSize = Math.max(8, Math.min(32, Math.min(imageDimensions.width, imageDimensions.height) / 20));
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="8" height="8" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${dotSize}" height="${dotSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <circle cx="4" cy="4" r="1" fill="currentColor" opacity="0.8"/>
+          <circle cx="${dotSize/2}" cy="${dotSize/2}" r="${dotSize/8}" fill="currentColor" opacity="0.8"/>
         </pattern>
       `;
     case 'solid':
@@ -50,10 +56,11 @@ const generatePatternDef = (patternId: string, offset: { x: number; y: number } 
         </pattern>
       `;
     default:
+      const defaultSize = Math.max(8, Math.min(32, Math.min(imageDimensions.width, imageDimensions.height) / 20));
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="8" height="8" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${defaultSize}" height="${defaultSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <rect width="8" height="8" fill="currentColor" opacity="0.3"/>
+          <rect width="${defaultSize}" height="${defaultSize}" fill="currentColor" opacity="0.3"/>
         </pattern>
       `;
   }
@@ -75,7 +82,7 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
       .map(segment => {
         const patternId = segment.ditherPattern!;
         const offset = segment.patternOffset || { x: 0, y: 0 };
-        return generatePatternDef(patternId, offset);
+        return generatePatternDef(patternId, offset, imageDimensions);
       })
       .join('\n');
 
