@@ -104,6 +104,7 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
         nose: '#1a1a1a',
         mouth: '#1a1a1a',
         face: '#4ecdc4',
+        neck: '#8b4513',
         torso: '#45b7d1',
         'clothing-1': '#3498db',
         'clothing-2': '#9b59b6',
