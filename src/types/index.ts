@@ -4,13 +4,18 @@ export interface ImageSegment {
   mask: string; // Base64 encoded mask data
   svgPath?: string;
   ditherPattern?: string;
+  patternOffset?: { x: number; y: number }; // Pattern starting point offset
 }
 
 export interface DitherPattern {
   id: string;
   name: string;
   svgPattern: string;
-  preview: string; // Base64 encoded preview
+  preview: string; // Base64 encoded preview or asset path
+  assetPath?: string; // Path to asset file for image-based patterns
+  type: 'svg' | 'image'; // Pattern type
+  width?: number; // Pattern width for image-based patterns
+  height?: number; // Pattern height for image-based patterns
 }
 
 export interface SegmentationState {
@@ -34,4 +39,18 @@ export interface ClickPoint {
   x: number;
   y: number;
   type: 'include' | 'exclude';
+}
+
+export interface UploadedSVG {
+  id: string;
+  name: string;
+  content: string;
+  uploadedAt: Date;
+  segments?: ImageSegment[];
+}
+
+export interface AppState {
+  segmentationState: SegmentationState;
+  uploadedSVGs: UploadedSVG[];
+  activeMode: 'create' | 'edit'; // 'create' for new segments, 'edit' for uploaded SVGs
 }

@@ -1,13 +1,46 @@
-import React from 'react';
-import { Palette } from 'lucide-react';
+import React, { useState } from 'react';
+import { Palette, Move, RotateCcw } from 'lucide-react';
 import { ImageSegment, DitherPattern } from '../types';
 
 interface DitherPatternsProps {
   segments: ImageSegment[];
   onDitherPatternChange: (segmentId: string, patternId: string) => void;
+  onPatternOffsetChange?: (segmentId: string, offset: { x: number; y: number }) => void;
 }
 
+// Asset-based dither patterns using the new images
 const DITHER_PATTERNS: DitherPattern[] = [
+  {
+    id: 'dithered_marble_1',
+    name: 'Marble 1',
+    svgPattern: '', // Will be generated dynamically
+    preview: '/assets/dithered_marble_1.png',
+    assetPath: '/assets/dithered_marble_1.png',
+    type: 'image',
+    width: 64,
+    height: 64,
+  },
+  {
+    id: 'dithered_marble_2',
+    name: 'Marble 2',
+    svgPattern: '',
+    preview: '/assets/dithered_marble_2.png',
+    assetPath: '/assets/dithered_marble_2.png',
+    type: 'image',
+    width: 64,
+    height: 64,
+  },
+  {
+    id: 'dithered_nest',
+    name: 'Nest',
+    svgPattern: '',
+    preview: '/assets/dithered_nest.png',
+    assetPath: '/assets/dithered_nest.png',
+    type: 'image',
+    width: 64,
+    height: 64,
+  },
+  // Keep some original SVG patterns as fallbacks
   {
     id: 'dots',
     name: 'Dots',
@@ -16,47 +49,8 @@ const DITHER_PATTERNS: DitherPattern[] = [
         <circle cx="4" cy="4" r="1" fill="currentColor" opacity="0.8"/>
       </pattern>
     `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJkb3RzIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ij4KICAgICAgPGNpcmNsZSBjeD0iNCIgY3k9IjQiIHI9IjEiIGZpbGw9ImN1cnJlbnRDb2xvciIgb3BhY2l0eT0iMC44Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCNkb3RzKSIvPgo8L3N2Zz4='
-  },
-  {
-    id: 'lines',
-    name: 'Lines',
-    svgPattern: `
-      <pattern id="lines" patternUnits="userSpaceOnUse" width="4" height="4">
-        <path d="M0,4 L4,0" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      </pattern>
-    `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJsaW5lcyIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQiIGhlaWdodD0iNCI+CiAgICAgIDxwYXRoIGQ9Ik0wLDQgTDQsMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCNsaW5lcykiLz4KPC9zdmc+'
-  },
-  {
-    id: 'grid',
-    name: 'Grid',
-    svgPattern: `
-      <pattern id="grid" patternUnits="userSpaceOnUse" width="8" height="8">
-        <rect x="0" y="0" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
-      </pattern>
-    `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJncmlkIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ij4KICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC40Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCNncmlkKSIvPgo8L3N2Zz4='
-  },
-  {
-    id: 'crosshatch',
-    name: 'Crosshatch',
-    svgPattern: `
-      <pattern id="crosshatch" patternUnits="userSpaceOnUse" width="6" height="6">
-        <path d="M0,0 L6,6 M6,0 L0,6" stroke="currentColor" stroke-width="1" opacity="0.5"/>
-      </pattern>
-    `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJjcm9zc2hhdGNoIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iNiIgaGVpZ2h0PSI2Ij4KICAgICAgPHBhdGggZD0iTTAsMCBMNiw2IE02LDAgTDAsNiIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC41Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCNjcm9zc2hhdGNoKSIvPgo8L3N2Zz4='
-  },
-  {
-    id: 'waves',
-    name: 'Waves',
-    svgPattern: `
-      <pattern id="waves" patternUnits="userSpaceOnUse" width="12" height="12">
-        <path d="M0,6 Q3,0 6,6 T12,6" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
-      </pattern>
-    `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJ3YXZlcyIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIj4KICAgICAgPHBhdGggZD0iTTAsNiBRMywwIDYsNiBUMTIsNiIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCN3YXZlcykiLz4KPC9zdmc+'
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJkb3RzIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ij4KICAgICAgPGNpcmNsZSBjeD0iNCIgY3k9IjQiIHI9IjEiIGZpbGw9ImN1cnJlbnRDb2xvciIgb3BhY2l0eT0iMC44Ii8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0idXJsKCNkb3RzKSIvPgo8L3N2Zz4=',
+    type: 'svg',
   },
   {
     id: 'solid',
@@ -66,11 +60,29 @@ const DITHER_PATTERNS: DitherPattern[] = [
         <rect width="1" height="1" fill="currentColor"/>
       </pattern>
     `,
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9ImN1cnJlbnRDb2xvciIvPgo8L3N2Zz4='
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9ImN1cnJlbnRDb2xvciIvPgo8L3N2Zz4=',
+    type: 'svg',
   },
 ];
 
-const DitherPatterns: React.FC<DitherPatternsProps> = ({ segments, onDitherPatternChange }) => {
+const DitherPatterns: React.FC<DitherPatternsProps> = ({ 
+  segments, 
+  onDitherPatternChange, 
+  onPatternOffsetChange 
+}) => {
+  const [editingOffset, setEditingOffset] = useState<string | null>(null);
+
+  const handleOffsetChange = (segmentId: string, field: 'x' | 'y', value: number) => {
+    const segment = segments.find(s => s.id === segmentId);
+    const currentOffset = segment?.patternOffset || { x: 0, y: 0 };
+    const newOffset = { ...currentOffset, [field]: value };
+    onPatternOffsetChange?.(segmentId, newOffset);
+  };
+
+  const resetOffset = (segmentId: string) => {
+    onPatternOffsetChange?.(segmentId, { x: 0, y: 0 });
+  };
+
   return (
     <div>
       <h3 style={{ margin: '2rem 0 1rem 0', color: '#646cff' }}>
@@ -78,7 +90,7 @@ const DitherPatterns: React.FC<DitherPatternsProps> = ({ segments, onDitherPatte
         Dither Patterns
       </h3>
       <p style={{ margin: '0 0 1.5rem 0', opacity: 0.8 }}>
-        Select dither patterns for each segmented area
+        Select dither patterns for each segmented area and adjust pattern positioning
       </p>
       
       {segments.map(segment => (
@@ -116,6 +128,70 @@ const DitherPatterns: React.FC<DitherPatternsProps> = ({ segments, onDitherPatte
               </div>
             ))}
           </div>
+
+          {/* Pattern Offset Controls */}
+          {segment.ditherPattern && (
+            <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Move size={16} />
+                <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Pattern Offset</span>
+                <button
+                  onClick={() => resetOffset(segment.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#666',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <RotateCcw size={12} />
+                  Reset
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#666' }}>X:</label>
+                  <input
+                    type="number"
+                    value={segment.patternOffset?.x || 0}
+                    onChange={(e) => handleOffsetChange(segment.id, 'x', parseInt(e.target.value) || 0)}
+                    style={{
+                      width: '60px',
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#666' }}>Y:</label>
+                  <input
+                    type="number"
+                    value={segment.patternOffset?.y || 0}
+                    onChange={(e) => handleOffsetChange(segment.id, 'y', parseInt(e.target.value) || 0)}
+                    style={{
+                      width: '60px',
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#888' }}>
+                Adjust where the pattern starts (0,0 = top-left)
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
