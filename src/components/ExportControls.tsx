@@ -13,35 +13,38 @@ const generatePatternDef = (patternId: string, offset: { x: number; y: number } 
   const offsetX = offset.x;
   const offsetY = offset.y;
 
-  // Calculate pattern size to fill the entire image without repeating
-  const patternWidth = imageDimensions.width;
-  const patternHeight = imageDimensions.height;
+  // Smart scaling: maintain pattern detail while preventing unwanted repetition
+  // For image-based patterns, use a reasonable base size that scales with image but maintains quality
+  const basePatternSize = 128; // Higher resolution base
+  const maxImageDimension = Math.max(imageDimensions.width, imageDimensions.height);
+  const scaleFactor = Math.min(maxImageDimension / 400, 3); // Scale up to 3x for large images
+  const patternSize = Math.round(basePatternSize * scaleFactor);
 
   switch (patternId) {
     case 'dithered_marble_1':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_1.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
+          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
         </pattern>
       `;
     case 'dithered_marble_2':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_2.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
+          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
         </pattern>
       `;
     case 'dithered_nest':
       return `
-        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternWidth}" height="${patternHeight}" 
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_nest.png" width="${patternWidth}" height="${patternHeight}" preserveAspectRatio="none"/>
+          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
         </pattern>
       `;
     case 'dots':
-      // Scale dots pattern based on image size
-      const dotSize = Math.max(8, Math.min(32, Math.min(imageDimensions.width, imageDimensions.height) / 20));
+      // Scale dots pattern based on image size but maintain reasonable size
+      const dotSize = Math.max(12, Math.min(48, Math.min(imageDimensions.width, imageDimensions.height) / 15));
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${dotSize}" height="${dotSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
@@ -56,7 +59,7 @@ const generatePatternDef = (patternId: string, offset: { x: number; y: number } 
         </pattern>
       `;
     default:
-      const defaultSize = Math.max(8, Math.min(32, Math.min(imageDimensions.width, imageDimensions.height) / 20));
+      const defaultSize = Math.max(12, Math.min(48, Math.min(imageDimensions.width, imageDimensions.height) / 15));
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${defaultSize}" height="${defaultSize}" 
                  patternTransform="translate(${offsetX},${offsetY})">
