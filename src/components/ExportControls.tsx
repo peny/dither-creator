@@ -8,37 +8,65 @@ interface ExportControlsProps {
   imageDimensions: { width: number; height: number };
 }
 
-const DITHER_PATTERNS: Record<string, string> = {
-  dots: `
-    <pattern id="dots" patternUnits="userSpaceOnUse" width="8" height="8">
-      <circle cx="4" cy="4" r="1" fill="currentColor" opacity="0.8"/>
-    </pattern>
-  `,
-  lines: `
-    <pattern id="lines" patternUnits="userSpaceOnUse" width="4" height="4">
-      <path d="M0,4 L4,0" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-    </pattern>
-  `,
-  grid: `
-    <pattern id="grid" patternUnits="userSpaceOnUse" width="8" height="8">
-      <rect x="0" y="0" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4"/>
-    </pattern>
-  `,
-  crosshatch: `
-    <pattern id="crosshatch" patternUnits="userSpaceOnUse" width="6" height="6">
-      <path d="M0,0 L6,6 M6,0 L0,6" stroke="currentColor" stroke-width="1" opacity="0.5"/>
-    </pattern>
-  `,
-  waves: `
-    <pattern id="waves" patternUnits="userSpaceOnUse" width="12" height="12">
-      <path d="M0,6 Q3,0 6,6 T12,6" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
-    </pattern>
-  `,
-  solid: `
-    <pattern id="solid" patternUnits="userSpaceOnUse" width="1" height="1">
-      <rect width="1" height="1" fill="currentColor"/>
-    </pattern>
-  `,
+// Generate SVG pattern definition for different pattern types
+const generatePatternDef = (patternId: string, offset: { x: number; y: number } = { x: 0, y: 0 }, imageDimensions: { width: number; height: number }): string => {
+  const offsetX = offset.x;
+  const offsetY = offset.y;
+
+  // Smart scaling: maintain pattern detail while preventing unwanted repetition
+  // For image-based patterns, use a reasonable base size that scales with image but maintains quality
+  const basePatternSize = 128; // Higher resolution base
+  const maxImageDimension = Math.max(imageDimensions.width, imageDimensions.height);
+  const scaleFactor = Math.min(maxImageDimension / 400, 3); // Scale up to 3x for large images
+  const patternSize = Math.round(basePatternSize * scaleFactor);
+
+  switch (patternId) {
+    case 'dithered_marble_1':
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+        </pattern>
+      `;
+    case 'dithered_marble_2':
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+        </pattern>
+      `;
+    case 'dithered_nest':
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+        </pattern>
+      `;
+    case 'dots':
+      // Scale dots pattern based on image size but maintain reasonable size
+      const dotSize = Math.max(12, Math.min(48, Math.min(imageDimensions.width, imageDimensions.height) / 15));
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${dotSize}" height="${dotSize}" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <circle cx="${dotSize/2}" cy="${dotSize/2}" r="${dotSize/8}" fill="currentColor" opacity="0.8"/>
+        </pattern>
+      `;
+    case 'solid':
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="1" height="1" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <rect width="1" height="1" fill="currentColor"/>
+        </pattern>
+      `;
+    default:
+      const defaultSize = Math.max(12, Math.min(48, Math.min(imageDimensions.width, imageDimensions.height) / 15));
+      return `
+        <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${defaultSize}" height="${defaultSize}" 
+                 patternTransform="translate(${offsetX},${offsetY})">
+          <rect width="${defaultSize}" height="${defaultSize}" fill="currentColor" opacity="0.3"/>
+        </pattern>
+      `;
+  }
 };
 
 const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensions }) => {
@@ -49,15 +77,16 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
     const svgWidth = imageDimensions.width;
     const svgHeight = imageDimensions.height;
     
-    // Get unique patterns used
-    const usedPatterns = new Set(
-      segments
-        .filter(segment => segment.ditherPattern)
-        .map(segment => segment.ditherPattern!)
-    );
+    // Note: We now generate patterns dynamically with offsets, so we don't need to track unique patterns
 
-    const patternDefs = Array.from(usedPatterns)
-      .map(patternId => DITHER_PATTERNS[patternId] || '')
+    // Generate pattern definitions with offsets
+    const patternDefs = segments
+      .filter(segment => segment.ditherPattern)
+      .map(segment => {
+        const patternId = segment.ditherPattern!;
+        const offset = segment.patternOffset || { x: 0, y: 0 };
+        return generatePatternDef(patternId, offset, imageDimensions);
+      })
       .join('\n');
 
     // Generate paths for all segments asynchronously
