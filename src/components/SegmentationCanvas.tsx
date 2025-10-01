@@ -99,10 +99,10 @@ const SegmentationCanvas = forwardRef<HTMLCanvasElement, SegmentationCanvasProps
     const getSegmentColor = (segmentId: string) => {
       const colors = {
         hair: '#ff6b6b',
-        'left-eye': '#2c3e50',
-        'right-eye': '#2c3e50',
-        nose: '#d35400',
-        mouth: '#e74c3c',
+        'left-eye': '#000000',
+        'right-eye': '#000000',
+        nose: '#000000',
+        mouth: '#000000',
         face: '#4ecdc4',
         torso: '#45b7d1',
         'clothing-1': '#3498db',
