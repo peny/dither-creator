@@ -16,6 +16,7 @@ const SEGMENT_TYPES: { id: SegmentType; name: string; icon: string }[] = [
   { id: 'nose', name: 'Nose', icon: '👃' },
   { id: 'mouth', name: 'Mouth', icon: '👄' },
   { id: 'face', name: 'Face', icon: '👤' },
+  { id: 'neck', name: 'Neck', icon: '🫁' },
   { id: 'torso', name: 'Torso', icon: '🫀' },
   { id: 'clothing-1', name: 'Clothing 1', icon: '👕' },
   { id: 'clothing-2', name: 'Clothing 2', icon: '👔' },

@@ -32,6 +32,7 @@ export type SegmentType =
   | 'nose'
   | 'mouth'
   | 'face'
+  | 'neck'
   | 'torso'
   | 'clothing-1'
   | 'clothing-2'

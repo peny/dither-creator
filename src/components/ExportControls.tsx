@@ -13,33 +13,33 @@ const generatePatternDef = (patternId: string, offset: { x: number; y: number } 
   const offsetX = offset.x;
   const offsetY = offset.y;
 
-  // Smart scaling: maintain pattern detail while preventing unwanted repetition
-  // For image-based patterns, use a reasonable base size that scales with image but maintains quality
-  const basePatternSize = 128; // Higher resolution base
+  // Smart scaling: ensure patterns are large enough to prevent white lines/gaps
+  // Use more aggressive scaling to ensure complete coverage
+  const basePatternSize = 256; // Larger base size for better coverage
   const maxImageDimension = Math.max(imageDimensions.width, imageDimensions.height);
-  const scaleFactor = Math.min(maxImageDimension / 400, 3); // Scale up to 3x for large images
+  const scaleFactor = Math.min(maxImageDimension / 300, 4); // Scale up to 4x for better coverage
   const patternSize = Math.round(basePatternSize * scaleFactor);
 
   switch (patternId) {
     case 'dithered_marble_1':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_marble_2':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_nest':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dots':
@@ -220,9 +220,19 @@ const ExportControls: React.FC<ExportControlsProps> = ({ segments, imageDimensio
   const getSegmentColor = (segmentId: string): string => {
     const colors = {
       hair: '#ff6b6b',
+      'left-eye': '#1a1a1a',
+      'right-eye': '#1a1a1a',
+      nose: '#1a1a1a',
+      mouth: '#1a1a1a',
       face: '#4ecdc4',
-      body: '#45b7d1',
-      arms: '#96ceb4',
+      neck: '#8b4513',
+      torso: '#45b7d1',
+      'clothing-1': '#3498db',
+      'clothing-2': '#9b59b6',
+      'left-arm': '#96ceb4',
+      'right-arm': '#96ceb4',
+      'left-hand': '#f39c12',
+      'right-hand': '#f39c12',
       legs: '#feca57',
       accessories: '#ff9ff3',
       background: '#a4b0be',

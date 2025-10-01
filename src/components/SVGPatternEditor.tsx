@@ -69,32 +69,32 @@ const generatePatternDef = (patternId: string, offset: { x: number; y: number } 
   const offsetX = offset.x;
   const offsetY = offset.y;
 
-  // Smart scaling: maintain pattern detail while preventing unwanted repetition
-  const basePatternSize = 128;
+  // Smart scaling: ensure patterns are large enough to prevent white lines/gaps
+  const basePatternSize = 256; // Larger base size for better coverage
   const maxSvgDimension = Math.max(svgDimensions.width, svgDimensions.height);
-  const scaleFactor = Math.min(maxSvgDimension / 400, 3);
+  const scaleFactor = Math.min(maxSvgDimension / 300, 4); // Scale up to 4x for better coverage
   const patternSize = Math.round(basePatternSize * scaleFactor);
 
   switch (patternId) {
     case 'dithered_marble_1':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_marble_1.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_marble_2':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_marble_2.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dithered_nest':
       return `
         <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${patternSize}" height="${patternSize}" 
-                 patternTransform="translate(${offsetX},${offsetY})">
-          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="xMidYMid"/>
+                 patternTransform="translate(${offsetX},${offsetY})" patternContentUnits="userSpaceOnUse">
+          <image href="/assets/dithered_nest.png" width="${patternSize}" height="${patternSize}" preserveAspectRatio="none"/>
         </pattern>
       `;
     case 'dots':
